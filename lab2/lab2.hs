@@ -14,3 +14,15 @@ indexOf_helper c (x:xs) n =
   else
     indexOf_helper c xs (n + 1)
 indexOf c s = indexOf_helper c s 0
+
+positions :: Char -> String -> [Int]
+positions_helper :: Char -> String -> Int -> [Int] -> [Int]
+positions_helper _ "" _ acc = acc
+positions_helper c (x:xs) n acc =
+  positions_helper c xs (n + 1) new_acc where
+    new_acc =
+      if c == x then
+        (n:acc)
+      else
+        acc
+positions c s = reverse (positions_helper c s 0 [])
