@@ -45,6 +45,20 @@ nats n = n : (nats (n + 1))
 list = nats 0
 
 inits_helper [] acc = acc
-inits_helper (l:ls) (acc:accs) =  
+-- inits_helper (l:ls) (acc:accs) =
 inits [] = [[]]
-inits (l:ls) =
+-- inits (l:ls) =
+
+hd [] = error "Lista pusta nie ma głowy!"
+hd (x:xs) = x
+
+tl [] = error "Lista pusta nie ma ogona!"
+tl (x:xs) = xs
+
+mytake n l =
+  if n == 0 then
+    []
+  else
+    case l of
+      [] -> error "Za krótka lista :c!"
+      x:xs -> x:(mytake (n-1) xs)
