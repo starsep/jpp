@@ -28,10 +28,10 @@ positions_helper c (x:xs) n acc =
 positions c s = reverse (positions_helper c s 0 [])
 
 incAll :: [[Int]] -> [[Int]]
-incAll = map (map (+1))
+incAll = map $ map (+1)
 
 -- fact n = foldl (*) 1 [1..n]
 fact n = product [1..n]
 
 conc :: [[a]] -> [a]
-conc = foldl (++) []
+conc = foldr (++) []
