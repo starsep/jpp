@@ -1,10 +1,8 @@
 module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, toLists) where
+  import Data.List
   data Auto a q = A { states :: [q], initStates :: [q], isAccepting :: q -> Bool, transition :: q -> a -> [q] }
-  unique :: Eq q => [q] -> [q]
-  unique [] = []
-  unique (x:xs) = if x `elem` xs then unique xs else x : unique xs
   getNewStates :: Eq q => Auto a q -> a -> [q] -> [q]
-  getNewStates aut x qs = unique $ foldl (\ acc state -> acc ++ transition aut state x) [] qs
+  getNewStates aut x qs = nub $ foldl (\ acc state -> acc ++ transition aut state x) [] qs
   acceptsHelper :: Eq q => Auto a q -> [a] -> [q] -> Bool
   acceptsHelper aut [] qs = any (isAccepting aut) qs
   acceptsHelper aut (x:xs) qs = acceptsHelper aut xs (getNewStates aut x qs)
