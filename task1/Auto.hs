@@ -41,4 +41,4 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
   fromLists s i a t = A { states = s, initStates = i, isAccepting = (`elem` a), transition = trans} where
     trans q c = foldl (\ acc (x, cc, l) -> if x == q && c == cc then l ++ acc else acc) [] t
   toLists :: (Enum a, Bounded a) => Auto a q -> ([q], [q], [q], [(q, a, [q])])
-  toLists _ = ([], [], [], [])
+  toLists aut = (states aut, initStates aut, filter (isAccepting aut) (states aut), [])
