@@ -16,7 +16,11 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
   symA x = A { states = [False, True], initStates = [False], isAccepting = id, transition = t} where
     t q a = [True | not q && a == x]
   leftA :: Auto a q -> Auto a (Either q r)
-  leftA _ = A { states = [], initStates = [], isAccepting = const False, transition = \ _ _ -> []}
+  leftA aut = A { states = map Left (states aut), initStates = map Left (initStates aut), isAccepting = isA, transition = trans} where
+    isA (Left x) = isAccepting aut x
+    isA (Right _) = False
+    trans (Left x) c = map Left (transition aut x c)
+    trans (Right _) _ = []
   sumA :: Auto a q1 -> Auto a q2 -> Auto a (Either q1 q2)
   sumA aut1 aut2 = A { states = s, initStates = i, isAccepting = acc, transition = t} where
     s = map Left (states aut1) ++ map Right (states aut2)
@@ -26,8 +30,15 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
     t q a = case q of Left q1 -> map Left (transition aut1 q1 a)
                       Right q2 -> map Right (transition aut2 q2 a)
   thenA :: Auto a q1 -> Auto a q2 -> Auto a (Either q1 q2)
-  thenA _ _ = A { states = [], initStates = [], isAccepting = const True, transition = \ _ _ -> []}
-  fromLists :: (Eq q, Eq a) => [q] -> [q] -> [q] -> [(q,a,[q])] -> Auto a q
-  fromLists _ _ _ _ = A { states = [], initStates = [], isAccepting = const False, transition = \ _ _ -> []}
-  toLists :: (Enum a,Bounded a) => Auto a q -> ([q],[q],[q],[(q,a,[q])])
+  thenA aut1 aut2 = A { states = s, initStates = i, isAccepting = acc, transition = t} where
+    s = map Left (states aut1) ++ map Right (states aut2)
+    i = map Left (initStates aut1)
+    acc q = case q of Left q1 -> isAccepting aut1 q1
+                      Right q2 -> isAccepting aut2 q2
+    t q a = case q of Left q1 -> map Left (transition aut1 q1 a) ++ if isAccepting aut1 q1 then map Right (initStates aut2) else []
+                      Right q2 -> map Right (transition aut2 q2 a)
+  fromLists :: (Eq q, Eq a) => [q] -> [q] -> [q] -> [(q, a, [q])] -> Auto a q
+  fromLists s i a t = A { states = s, initStates = i, isAccepting = (`elem` a), transition = trans} where
+    trans q c = foldl (\ acc (x, cc, l) -> if x == q && c == cc then l ++ acc else acc) [] t
+  toLists :: (Enum a, Bounded a) => Auto a q -> ([q], [q], [q], [(q, a, [q])])
   toLists _ = ([], [], [], [])
