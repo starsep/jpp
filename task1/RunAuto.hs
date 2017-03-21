@@ -24,8 +24,15 @@ parseStateList (line, n) =
 parseWord :: String -> Maybe String
 parseWord word = assert (all isAsciiUpper word) $ Just word
 
+parseStatesHelper :: [String] -> [Int] -> Maybe [Int]
+parseStatesHelper [] acc = Just acc
+parseStatesHelper (s : ss) acc =
+  let state = readMaybe s :: Maybe Int in
+  assertJust state $
+  parseStatesHelper ss (fromJust state : acc)
+
 parseStates :: [String] -> Maybe [Int]
-parseStates _ = Nothing
+parseStates ls = parseStatesHelper ls []
 
 parseTransition :: String -> Maybe [(Int, Char, [Int])]
 parseTransition line =
