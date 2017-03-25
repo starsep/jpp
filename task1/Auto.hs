@@ -76,7 +76,7 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
     initStates = map Right (
         if acceptsEmpty aut1 then
           initStates aut2
-          else []
+        else []
       ) ++ map Left (initStates aut1),
     isAccepting = \ q -> case q of
       Left _ -> acceptsEmpty aut2
