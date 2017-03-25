@@ -83,10 +83,11 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
       Right q' -> isAccepting aut2 q',
     transition = \ q a -> case q of
       Left q1 ->
-        map Left (transition aut1 q1 a) ++
-          if isAccepting aut1 q1 then
-            map Right (initStates aut2)
-          else []
+        if isAccepting aut1 q1 then
+          map Right (initStates aut2)
+        else []
+        ++ map Left (transition aut1 q1 a)
+
       Right q2 -> map Right (transition aut2 q2 a)
   }
 
@@ -104,11 +105,11 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
   toLists :: (Enum a, Bounded a) => Auto a q -> ([q], [q], [q], [(q, a, [q])])
   toLists aut =
     (states aut, initStates aut, filter (isAccepting aut) (states aut), trans) where
-      transitionsA c x =
-        foldr (\ s acc ->
+      transitionsA c acc =
+        foldr (\ s acc' ->
           let t = transition aut s c in
-          if null t then acc else (s, c, t) : acc
-        ) [] (states aut) ++ x
+          if null t then acc' else (s, c, t) : acc'
+        ) [] (states aut) ++ acc
       trans = foldr transitionsA [] [minBound .. maxBound]
 
   instance (Show a, Enum a, Bounded a, Show q) => Show (Auto a q) where
