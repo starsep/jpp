@@ -104,14 +104,12 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
   toLists :: (Enum a, Bounded a) => Auto a q -> ([q], [q], [q], [(q, a, [q])])
   toLists aut =
     (states aut, initStates aut, filter (isAccepting aut) (states aut), trans) where
-      valuesA :: (Enum a, Bounded a) => [a]
-      valuesA = [minBound .. maxBound]
       transitionsA c x =
         foldr (\ s acc ->
           let t = transition aut s c in
           if null t then acc else (s, c, t) : acc
         ) [] (states aut) ++ x
-      trans = foldr transitionsA [] valuesA
+      trans = foldr transitionsA [] [minBound .. maxBound]
 
   instance (Show a, Enum a, Bounded a, Show q) => Show (Auto a q) where
     show aut = show s ++ " " ++ show i ++ " " ++ show acc ++ " " ++ show t where
