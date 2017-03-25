@@ -118,7 +118,7 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
       valuesA :: (Enum a, Bounded a) => [a]
       valuesA = [minBound .. maxBound]
       transitionsA x c =
-        x ++ foldl (\acc s ->
+        x ++ foldl (\ acc s ->
           let t = transition aut s c in
           if null t then acc else (s, c, t) : acc
         ) [] (states aut)
