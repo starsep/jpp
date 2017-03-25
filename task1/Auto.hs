@@ -90,7 +90,7 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
         else []
       )
     acc q = case q of
-      Left q1 -> isAccepting aut1 q1
+      Left _ -> acceptsEmpty aut2
       Right q2 -> isAccepting aut2 q2
     t q a = case q of
       Left q1 ->
