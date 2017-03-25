@@ -12,6 +12,9 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
   getNewStates aut x qs =
     nub $ foldl (\ acc state -> acc ++ transition aut state x) [] qs
 
+  acceptsEmpty :: Auto a q -> Bool
+  acceptsEmpty aut = any (isAccepting aut) (initStates aut)
+
   acceptsHelper :: Eq q => Auto a q -> [a] -> [q] -> Bool
   acceptsHelper aut [] qs = any (isAccepting aut) qs
   acceptsHelper aut (x:xs) qs = acceptsHelper aut xs (getNewStates aut x qs)
@@ -65,10 +68,12 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
   } where
     s = map Left (states aut1) ++ map Right (states aut2)
     i = map Left (initStates aut1) ++ map Right (initStates aut2)
-    acc q = case q of Left q1 -> isAccepting aut1 q1
-                      Right q2 -> isAccepting aut2 q2
-    t q a = case q of Left q1 -> map Left (transition aut1 q1 a)
-                      Right q2 -> map Right (transition aut2 q2 a)
+    acc q = case q of
+      Left q1 -> isAccepting aut1 q1
+      Right q2 -> isAccepting aut2 q2
+    t q a = case q of
+      Left q1 -> map Left (transition aut1 q1 a)
+      Right q2 -> map Right (transition aut2 q2 a)
 
   thenA :: Auto a q1 -> Auto a q2 -> Auto a (Either q1 q2)
   thenA aut1 aut2 = A {
@@ -78,9 +83,15 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
     transition = t
   } where
     s = map Left (states aut1) ++ map Right (states aut2)
-    i = map Left (initStates aut1)
-    acc q = case q of Left q1 -> isAccepting aut1 q1
-                      Right q2 -> isAccepting aut2 q2
+    i = map Left (initStates aut1) ++
+      map Right (
+        if acceptsEmpty aut1 then
+          initStates aut2
+        else []
+      )
+    acc q = case q of
+      Left q1 -> isAccepting aut1 q1
+      Right q2 -> isAccepting aut2 q2
     t q a = case q of
       Left q1 ->
         map Left (transition aut1 q1 a) ++
