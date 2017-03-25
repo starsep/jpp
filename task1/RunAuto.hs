@@ -77,6 +77,7 @@ runAuto file =
       initStates = fromJust maybeStartingStates :: [Int]
       maybeParseTransitions = parseTransitions (drop 3 fileLines) in
   assertJust maybeParseTransitions $
+  -- zakładam, że stany na wejściu są w [1..n]
   let (trans, word) = fromJust maybeParseTransitions
       auto = fromLists [1..n] initStates accStates trans in
   Just $ accepts auto word
