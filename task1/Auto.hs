@@ -10,7 +10,7 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
 
   getNewStates :: Eq q => Auto a q -> a -> [q] -> [q]
   getNewStates aut x qs =
-    nub $ foldl (\ acc state -> acc ++ transition aut state x) [] qs
+    nub $ foldr (\ state acc -> transition aut state x ++ acc) [] qs
 
   acceptsEmpty :: Auto a q -> Bool
   acceptsEmpty aut = any (isAccepting aut) (initStates aut)
@@ -108,7 +108,7 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
     transition = trans
   } where
     trans q c =
-      foldl (\ acc (x, cc, l) ->
+      foldr (\ (x, cc, l) acc ->
         if x == q && c == cc then l ++ acc else acc
       ) [] t
 
@@ -117,12 +117,12 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
     (states aut, initStates aut, filter (isAccepting aut) (states aut), trans) where
       valuesA :: (Enum a, Bounded a) => [a]
       valuesA = [minBound .. maxBound]
-      transitionsA x c =
-        x ++ foldl (\ acc s ->
+      transitionsA c x =
+        foldr (\ s acc ->
           let t = transition aut s c in
           if null t then acc else (s, c, t) : acc
-        ) [] (states aut)
-      trans = foldl transitionsA [] valuesA
+        ) [] (states aut) ++ x
+      trans = foldr transitionsA [] valuesA
 
   instance (Show a, Enum a, Bounded a, Show q) => Show (Auto a q) where
     show aut = show s ++ " " ++ show i ++ " " ++ show acc ++ " " ++ show t where
