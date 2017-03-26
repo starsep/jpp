@@ -1,3 +1,5 @@
+-- Filip Czaplicki fc359081@students.mimuw.edu.pl
+
 module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, toLists) where
   import Data.List
 
@@ -89,12 +91,12 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
       Left q' -> acceptsEmpty aut2 && isAccepting aut1 q'
       Right q' -> isAccepting aut2 q',
     transition = \ q a -> case q of
-      Left q1 ->
-        if isAccepting aut1 q1 then
+      Left q' ->
+        (if any (isAccepting aut1) (transition aut1 q' a) then
           map Right (initStates aut2)
         else []
-        ++ map Left (transition aut1 q1 a)
-      Right q2 -> map Right (transition aut2 q2 a)
+        ) ++ map Left (transition aut1 q' a)
+      Right q' -> map Right (transition aut2 q' a)
   }
 
   fromLists :: (Eq q, Eq a) => [q] -> [q] -> [q] -> [(q, a, [q])] -> Auto a q

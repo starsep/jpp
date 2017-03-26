@@ -1,3 +1,5 @@
+-- Filip Czaplicki fc359081@students.mimuw.edu.pl
+
 import           Auto
 import           Data.Char
 import           Data.Maybe
