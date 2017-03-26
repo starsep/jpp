@@ -8,13 +8,20 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
     transition :: q -> a -> [q]
   }
 
+  -- Funkcja pomocnicza do accepts.
+  -- Dostaje automat, literę oraz listę stanów.
+  -- Zwraca nową listę stanów.
   getNewStates :: Eq q => Auto a q -> a -> [q] -> [q]
   getNewStates aut x qs =
     nub $ foldr (\ state acc -> transition aut state x ++ acc) [] qs
 
+  -- Funkcja pomocnicza do sprawdzania czy automat akceptuje słowo puste.
   acceptsEmpty :: Auto a q -> Bool
   acceptsEmpty aut = any (isAccepting aut) (initStates aut)
 
+  -- Funkcja pomocnicza do accepts.
+  -- Dostaje automat, wyraz, listę stanów.
+  -- Zwraca wartość logiczną taką jak accepts.
   acceptsHelper :: Eq q => Auto a q -> [a] -> [q] -> Bool
   acceptsHelper aut [] qs = any (isAccepting aut) qs
   acceptsHelper aut (x:xs) qs = acceptsHelper aut xs (getNewStates aut x qs)
@@ -79,7 +86,7 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
         else []
       ) ++ map Left (initStates aut1),
     isAccepting = \ q -> case q of
-      Left _ -> acceptsEmpty aut2
+      Left q' -> acceptsEmpty aut2 && isAccepting aut1 q'
       Right q' -> isAccepting aut2 q',
     transition = \ q a -> case q of
       Left q1 ->
@@ -87,7 +94,6 @@ module Auto (Auto, accepts, emptyA, epsA, symA, leftA, sumA, thenA, fromLists, t
           map Right (initStates aut2)
         else []
         ++ map Left (transition aut1 q1 a)
-
       Right q2 -> map Right (transition aut2 q2 a)
   }
 
