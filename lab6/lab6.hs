@@ -2,9 +2,9 @@ import Control.Monad.Reader
 
 data Help a = That { fun :: Int -> a }
 
-instance Monad Help where
-  return a = That (const a)
-  (>>=) (That f) update = That $ \ x -> (fun $ update $ f x) x
+-- instance Monad Help where
+  -- return a = That (const a)
+  -- (>>=) (That f) update = That $ \ x -> (fun $ update $ f x) x
 
 -- ask :: Help Int
 -- ask = That id
