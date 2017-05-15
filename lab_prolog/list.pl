@@ -1,10 +1,10 @@
 mylist([]).
-mylist([X | L]) :- mylist(L).
+mylist([_ | L]) :- mylist(L).
 
 myfirst(E, [E | _]).
 
 mylast(E, [E]).
-mylast(E, [F | L]) :- mylast(E, L).
+mylast(E, [_ | L]) :- mylast(E, L).
 
 mymember(E, [E | _]).
 mymember(E, [_ | L]) :- mymember(E, L).
@@ -20,5 +20,12 @@ myintersect(L, K) :- mymember(E, L), mymember(E, K).
 mydivide([], [], []).
 mydivide([H | L], [H | O], E) :- mydivide(L, E, O).
 
-mysublist([], L).
+mysublist([], _).
 mysublist(S, L) :- myjoin(Z, _, L), myjoin(_, S, Z).
+
+notempty([_ | _]).
+
+writelist(L) :- write('['), writelistbody(L), write(']').
+writelistbody([]) :- write('').
+writelistbody([E]) :- write(E).
+writelistbody([E | L]) :- notempty(L), write(E), write(', '), writelistbody(L).
