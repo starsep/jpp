@@ -8,7 +8,16 @@ main :-
   halt(1).
 
 % LR(0)
-grammar(ex1, gramatyka('E', [prod('E', [[nt('E'), '+', nt('T')], [nt('T')]]), prod('T', [[id], ['(', nt('E'), ')']])])).
+grammar(ex1, gramatyka('E', [
+  prod('E', [
+    [nt('E'),'+', nt('T')],
+    [nt('T')]
+  ]),
+  prod('T', [
+    [id],
+    ['(', nt('E'), ')']
+  ])
+])).
 
 % LR(0)
 grammar(ex2, gramatyka('A', [prod('A', [[nt('A'), x], [x]])])).
