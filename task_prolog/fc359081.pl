@@ -18,9 +18,15 @@ createAutomaton(G, A, I) :-
 
 % buildTable(+Grammar, -Table, -Info)
 buildTable(G, T, I) :-
-  G = gramatyka(S, L),
-  clojure([item('Z', [S, #], 0)], L, InitState),
-  debugItems(InitState),
+  G = gramatyka(S, P),
+  clojure([item('Z', [nt(S), #], 0)], P, InitState),
+  % debugItems(InitState),
+  goto(InitState, nt('E'), P, NewState),
+  write('GOTO\n'),
+  debugItems(NewState),
+  goto(NewState, '+', P, NewState2),
+  write('GOTO\n'),
+  debugItems(NewState2),
   T = null,
   I = yes.
 
@@ -54,27 +60,45 @@ clojureItem(I, P, C) :-
   length(R, Len),
   ( Len =< Index -> C = [I] ;
     nth0(Index, R, L),
-    itemsFromProductions(L, P, NewItems),
+    itemsFromProductions(P, L, NewItems),
     append([I], NewItems, C)
   ).
 
-% itemsFromProductions(+Symbol, +ProductionsList, -Items)
-itemsFromProductions(_, [], I) :- I = [].
-itemsFromProductions(S, [H | T], I) :-
+% itemsFromProductions(+ProductionsList, +Symbol, -Items)
+itemsFromProductions([], _, I) :- I = [].
+itemsFromProductions([H | T], S, I) :-
   H = prod(L, R),
-  ( L = S ->
-    rightSidesToItems(L, R, I)
+  ( nt(L) = S ->
+    rightSidesToItems(R, L, I)
   ;
-    itemsFromProductions(S, T, I)
+    itemsFromProductions(T, S, I)
   ).
 
-% rightSidesToItems(+LeftSymbol, +RightSidesList, -Items)
-rightSidesToItems(_, [], I) :- I = [].
-rightSidesToItems(L, [H | T], I) :-
-  rightSidesToItems(L, T, IT),
+% rightSidesToItems(+RightSidesList, +LeftSymbol, -Items)
+rightSidesToItems([], _, I) :- I = [].
+rightSidesToItems([H | T], L, I) :-
+  rightSidesToItems(T, L, IT),
   Item = item(L, H, 0),
   I = [Item | IT].
 
+% goto(+Items, +Symbol, +ProductionsList, -ResultItems)
+goto(I, S, P, Res) :-
+  moveItems(I, S, ResM),
+  clojure(ResM, P, Res).
+
+
+% moveItems(+Items, +Symbol, -ResultItems)
+moveItems([], _, R) :- R = [].
+moveItems([H | T], S, Res) :-
+  moveItems(T, S, ResT),
+  H = item(L, R, Index),
+  length(R, Len),
+  ( Index < Len, nth0(Index, R, S) ->
+    Index1 is Index + 1,
+    Res = [item(L, R, Index1) | ResT]
+  ;
+    Res = ResT
+  ).
 
 % accept(+Automaton, +Word)
 accept(_A, _W).
@@ -101,17 +125,17 @@ debugGrammar(G) :-
 debugProductions([]).
 debugProductions([H | T]) :-
   H = prod(L, R),
-  debugProduction(L, R),
+  debugProduction(R, L),
   debugProductions(T).
 
-% debugProduction(+LeftSymbol, +RightSidesList)
-debugProduction(_, []).
-debugProduction(L, [H | T]) :-
+% debugProduction(+RightSidesList, +LeftSymbol)
+debugProduction([], _).
+debugProduction([H | T], L) :-
   write(L),
   write(' -> '),
   debugRightSides(H),
   write('\n'),
-  debugProduction(L, T).
+  debugProduction(T, L).
 
 % debugRightSides(+RightSidesList)
 debugRightSides([]).
