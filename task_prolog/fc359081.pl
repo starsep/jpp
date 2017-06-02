@@ -20,7 +20,7 @@ createAutomaton(G, A, I) :-
 buildTable(G, T, I) :-
   G = gramatyka(S, L),
   clojure([item('Z', [S, #], 0)], L, InitState),
-  write(InitState),
+  debugItems(InitState),
   T = null,
   I = yes.
 
@@ -41,13 +41,12 @@ clojure(I, P, C) :-
   ( C1 == C2 -> C = C2 ; clojure(C2, P, C) ).
 
 % clojureOnce(+Items, +ProductionsList, -ClojureOfItems)
-clojureOnce([], _, C) :-
-  C = [].
-
+clojureOnce([], _, C) :- C = [].
 clojureOnce([H | T], P, C) :-
   clojureItem(H, P, CH),
   clojureOnce(T, P, CT),
-  append(CH, CT, C).
+  append(CH, CT, CJoin),
+  remove_dups(CJoin, C).
 
 % clojureItem(+Item, +ProductionsList, -ClojureOfItem)
 clojureItem(I, P, C) :-
@@ -56,8 +55,7 @@ clojureItem(I, P, C) :-
   ( Len =< Index -> C = [I] ;
     nth0(Index, R, L),
     itemsFromProductions(L, P, NewItems),
-    append([I], NewItems, C),
-    write(C)
+    append([I], NewItems, C)
   ).
 
 % itemsFromProductions(+Symbol, +ProductionsList, -Items)
@@ -126,5 +124,23 @@ debugRightSides([H | T]) :-
 debugRightSides([H | T]) :-
   write(H),
   debugRightSides(T).
+
+% debugItems(+Items)
+debugItems([]).
+debugItems([H | T]) :-
+  H = item(L, R, Index),
+  write(L),
+  write(' -> '),
+  debugRightSidesItem(R, Index),
+  write('\n'),
+  debugItems(T).
+
+% debugRightSidesItem(+RightSidesList, +Length)
+debugRightSidesItem([], _).
+debugRightSidesItem([H | T], L) :-
+  ( L == 0 -> put_code(8226) ; true ),
+  debugRightSides([H]),
+  L1 is L - 1,
+  debugRightSidesItem(T, L1).
 
 % --------------------------- DEBUG -------------------------------------
