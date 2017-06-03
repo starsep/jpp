@@ -20,15 +20,22 @@ createAutomaton(G, A, I) :-
 buildTable(G, T, I) :-
   G = gramatyka(S, P),
   clojure([item('Z', [nt(S), #], 0)], P, InitState),
-  % debugItems(InitState),
-  goto(InitState, nt('E'), P, NewState),
-  write('GOTO\n'),
-  debugItems(NewState),
-  goto(NewState, '+', P, NewState2),
-  write('GOTO\n'),
-  debugItems(NewState2),
+  debugItems(InitState),
+  symbols(P, Symbols),
+  runGoto(Symbols, InitState, P),
   T = null,
   I = yes.
+
+% runGoto(+Symbols, +Items, ProductionsList)
+runGoto([], _, _).
+runGoto([H | T], I, P) :-
+  goto(I, H, P, R),
+  write('runGoto '),
+  write(H),
+  write('\n'),
+  debugItems(R),
+  runGoto(T, I, P).
+
 
 % createAutomatonWithTable(+Grammar, +Table, -Automaton, -Info)
 createAutomatonWithTable(G, T, A, I) :-
@@ -39,6 +46,15 @@ createAutomatonWithTable(G, T, A, I) :-
 makeConflict(E, A, I) :-
   I = konflikt(E),
   A = null.
+
+% symbols(+ProductionsList, -Symbols)
+symbols([], S) :- S = [].
+symbols([H | T], S) :-
+  symbols(T, ST),
+  H = prod(L, P),
+  append(P, PJoin),
+  append([PJoin, [nt(L)], ST], SJoin),
+  remove_dups(SJoin, S).
 
 % clojure(+Items, +ProductionsList, -ClojureOfItems)
 clojure(I, P, C) :-
@@ -85,7 +101,6 @@ rightSidesToItems([H | T], L, I) :-
 goto(I, S, P, Res) :-
   moveItems(I, S, ResM),
   clojure(ResM, P, Res).
-
 
 % moveItems(+Items, +Symbol, -ResultItems)
 moveItems([], _, R) :- R = [].
@@ -160,7 +175,7 @@ debugItems([H | T]) :-
   debugItems(T).
 
 % debugRightSidesItem(+RightSidesList, +Length)
-debugRightSidesItem([], _).
+debugRightSidesItem([], L) :- ( L == 0 -> put_code(8226) ; true ).
 debugRightSidesItem([H | T], L) :-
   ( L == 0 -> put_code(8226) ; true ),
   debugRightSides([H]),

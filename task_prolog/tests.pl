@@ -3,7 +3,7 @@
 main :-
   consult(fc359081),
   test(ex0, []),
-  % test(ex1, [[id], ['(',id,')'], [id,'+',ident], [id,'+',id]]),
+  test(ex1, [[id], ['(',id,')'], [id,'+',ident], [id,'+',id]]),
   % test(ex2, [[id], ['(',id,')'], [id,'+',ident], [id,'+',id]]),
   % test(ex3, [[id], ['(',id,')'], [id,'+',ident], [id,'+',id]]),
   % test(ex4, [[id], ['(',id,')'], [id,'+',ident], [id,'+',id]]),
