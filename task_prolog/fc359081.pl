@@ -18,30 +18,26 @@ createAutomaton(G, A, I) :-
 
 % buildTable(+Grammar, -Table, -Info)
 buildTable(G, T, I) :-
-  G = gramatyka(S, P),
+  gramatyka(S, P) = G,
   clojure([item('Z', [nt(S), #], 0)], P, InitItem),
   rightSymbols(P, Symbols),
   runGoto(Symbols, [InitItem], P, [], _States, T, I).
-  % ----- DEBUG
-  % write(States),
-  % write('\n'),
-  % debugStates(States),
-  % write('\n'),
-  % ----- DEBUG
 
 % runGoto(+Symbols, +States, +Productions, +Table, -ResStates, -ResTable, -Info)
 runGoto(Symbols, States, P, Table, RStates, RTable, Info) :-
-  % debugStates(States),
-  % runGotoOnce(Symbols, States, P, Table, RStates, RTable, Info).
-  % debugStates(RStates).
+  % trace,
   runGotoOnce(Symbols, States, P, Table, States2, Table2, I),
   ( I \= yes ->
     Info = I
   ;
-    runGotoOnce(Symbols, States2, P, Table2, RStates, RTable, Info),
-    debugStates(RStates)
-  ),
-  debugTable(RTable).
+    ( States == States2, Table == Table2 ->
+      Info = I,
+      RStates = States,
+      RTable = Table
+    ;
+      runGoto(Symbols, States2, P, Table2, RStates, RTable, Info)
+    )
+  ).
 
 % runGotoOnce(+Symbols, +States, +Productions, +Table, -RStates, -RTable, -Info)
 runGotoOnce([], States, _, Table, RStates, RTable, Info) :-
@@ -50,10 +46,7 @@ runGotoOnce([], States, _, Table, RStates, RTable, Info) :-
   Info = yes.
 
 runGotoOnce([H | T], States, P, Table, RStates, RTable, Info) :-
-  % debugStates(States),
   runGotoSymbol(States, States, H, P, Table, RS, RT, I),
-  % debugStates(RS),
-  % write('--------------------\n'),
   ( Info \= yes ->
     Info = I,
     RTable = RT,
@@ -69,15 +62,8 @@ runGotoSymbol([], AllS, _, _, Table, RStates, RTable, Info) :-
   Info = yes.
 
 runGotoSymbol([H | T], AllS, S, P, Table, RStates, RTable, Info) :-
-  % debugItems(H),
   goto(H, S, P, To),
   addStateToStateList(AllS, To, AllS2),
-  % % ----------- DEBUG
-  % write(S),
-  % write('>>>>>>>>>\n'),
-  % debugItems(To),
-  % write('<<<<<<<<<\n'),
-  % % ----------- DEBUG
   ( To == [] ->
     Table2 = Table,
     I = yes
@@ -106,20 +92,15 @@ addStateToStateList(L, S, R) :-
 % checkTableConflict(+Table, +Element)
 checkTableConflict([], _).
 checkTableConflict([H | T], E) :-
-  H = (A, S, B),
-  E = (X, C, Y),
-  ( A == X, S == C, B \= Y ->
-    fail
-  ;
-    checkTableConflict(T, E)
-  ).
+  (A, S, B) = H,
+  (X, C, Y) = E,
+  ( A == X, S == C, B \= Y -> fail ; checkTableConflict(T, E) ).
 
 % addElemToTable(+Table, +Element, -ResultTable, -Info)
 addElemToTable(T, E, R, I) :-
   ( checkTableConflict(T, E) ->
     append([T, [E]], R0),
     remove_dups(R0, R),
-    % write(R),
     I = yes
   ;
     makeConflict('TODO: change, konflikt tabeli :c', R, I)
@@ -127,9 +108,24 @@ addElemToTable(T, E, R, I) :-
 
 
 % createAutomatonWithTable(+Grammar, +Table, -Automaton, -Info)
-createAutomatonWithTable(_G, _T, A, I) :-
+createAutomatonWithTable(_G, T, A, I) :-
+  debugTable(T),
+  splitTable(T, GT, AT),
+  debugGATables(GT, AT),
   A = null,
   I = yes.
+
+% splitTable(+Table, -GotoTable, -ActionTable)
+splitTable([], [], []).
+splitTable([H | T], G, A) :-
+  splitTable(T, G1, A1),
+  ( (_, nt(_), _) = H ->
+    G = [H | G1],
+    A = A1
+  ;
+    G = G1,
+    A = [H | A1]
+  ).
 
 % makeConflict(+ErrorMessage, -Automaton, -Info)
 makeConflict(E, A, I) :-
@@ -140,7 +136,7 @@ makeConflict(E, A, I) :-
 rightSymbols([], S) :- S = [].
 rightSymbols([H | T], S) :-
   rightSymbols(T, ST),
-  H = prod(_, P),
+  prod(_, P) = H,
   append(P, PJoin),
   append([PJoin, ST], SJoin),
   remove_dups(SJoin, SUniq),
@@ -149,8 +145,7 @@ rightSymbols([H | T], S) :-
 % clojure(+Items, +ProductionsList, -ClojureOfItems)
 clojure(I, P, C) :-
   clojureOnce(I, P, C1),
-  clojureOnce(C1, P, C2),
-  ( C1 == C2 -> C = C2 ; clojure(C2, P, C) ).
+  ( I == C1 -> C = C1 ; clojure(C1, P, C) ).
 
 % clojureOnce(+Items, +ProductionsList, -ClojureOfItems)
 clojureOnce([], _, C) :- C = [].
@@ -162,7 +157,7 @@ clojureOnce([H | T], P, C) :-
 
 % clojureItem(+Item, +ProductionsList, -ClojureOfItem)
 clojureItem(I, P, C) :-
-  I = item(_, R, Index),
+  item(_, R, Index) = I,
   length(R, Len),
   ( Len =< Index -> C = [I] ;
     nth0(Index, R, L),
@@ -202,7 +197,7 @@ indexOf([_ | T], E, I) :-
 moveItems([], _, R) :- R = [].
 moveItems([H | T], S, Res) :-
   moveItems(T, S, ResT),
-  H = item(L, R, Index),
+  item(L, R, Index) = H,
   length(R, Len),
   ( Index < Len, nth0(Index, R, S) ->
     Index1 is Index + 1,
@@ -216,11 +211,11 @@ accept(_A, _W).
 
 % extendGrammar(+Grammar, -ExtendedGrammar)
 extendGrammar(G, E) :-
-  G = gramatyka(S, L),
+  gramatyka(S, L) = G,
   E = gramatyka(S, [prod('Z', [[nt(S), #]]) | L]).
 
 % tableSymbols(+Table, -Symbols)
-tableSymbols([], S) :- S = [].
+tableSymbols([], []).
 tableSymbols([H | T], S) :-
   (_, X, _) = H,
   tableSymbols(T, S1),
@@ -291,7 +286,7 @@ emptyRow(L, R) :-
 
 % debugGrammar(+Grammar)
 debugGrammar(G) :-
-  G = gramatyka(S, L),
+  gramatyka(S, L) = G,
   write('---\n'),
   write('Grammar: starting symbol = '),
   write(S),
@@ -303,7 +298,7 @@ debugGrammar(G) :-
 % debugProductions(+ProductionsList)
 debugProductions([]).
 debugProductions([H | T]) :-
-  H = prod(L, R),
+  prod(L, R) = H,
   debugProduction(R, L),
   debugProductions(T).
 
@@ -334,7 +329,7 @@ debugSymbol(S) :-
 % debugItems(+Items)
 debugItems([]).
 debugItems([H | T]) :-
-  H = item(L, R, Index),
+  item(L, R, Index) = H,
   write('\t'),
   write(L),
   write(' -> '),
@@ -385,5 +380,12 @@ debugRows([H | T], I) :-
   debugHeader(H),
   I1 is I + 1,
   debugRows(T, I1).
+
+% debugGATables(+GotoTable, +ActionTable)
+debugGATables(G, A) :-
+  write('----- GotoTable -----\n'),
+  debugTable(G),
+  write('----- ActionTable -----\n'),
+  debugTable(A).
 
 % --------------------------- DEBUG -------------------------------------
