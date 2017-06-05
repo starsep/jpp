@@ -1,13 +1,37 @@
-% Filip Czaplicki
+% Filip Czaplicki 359081
 
 :- use_module(library(lists)).
+
+% Korzystałem z https://pl.wikipedia.org/wiki/Generowanie_parser%C3%B3w_LR
+% Automat reprezentuję zgodnie z tym opisem, tj. jako dwie tabele: goto i action
+% oraz stos.
+% Stos to lista numerów stanów.
+% Stany to listy sytuacji
+% Sytuacja to produkcja 'z kropką', reprezentowana jako trójka (L, P, N), gdzie
+% L to lewa strona produkcji, P prawa, N nr miejsca kropki
+% Tabele goto i action reprezenuję jako listy trójek postaci (N, C, A), gdzie
+% - N to numer stanu, z którego przechodzimy
+% - C to symbol (terminal/nonterminal)
+% - A to akcja:
+%   * w przypadku tabeli goto liczba
+%   * w przypadku tabeli action jedno z:
+%     - s(N) - shift do stanu N
+%     - r(N) - reduce z regułą N
+%     - acc - akcja akceptacji wyrazu
 
 % createLR(+Grammar, -Automaton, -Info)
 createLR(G, A, I) :-
   extendGrammar(G, E),
   createAutomaton(E, A, I).
 
+% extendGrammar(+Grammar, -ExtendedGrammar)
+% rozszerza gramatykę - dodaje produkcję Z -> S #, gdzie S to symbol początkowy
+extendGrammar(G, E) :-
+  gramatyka(S, L) = G,
+  E = gramatyka(S, [prod('Z', [[nt(S), #]]) | L]).
+
 % createAutomaton(+Grammar, -Automaton, -Info)
+% tworzy automat dostając gramatykę rozszerzoną
 createAutomaton(G, A, I) :-
   buildTable(G, Table, States, InfoTable),
   ( InfoTable \== yes ->
@@ -17,6 +41,7 @@ createAutomaton(G, A, I) :-
   ).
 
 % buildTable(+Grammar, -Table, -States, -Info)
+% tworzy tabele, z której powstaną tabele goto oraz action
 buildTable(G, T, States, I) :-
   gramatyka(S, P) = G,
   clojure([item('Z', [nt(S), #], 0)], P, InitItem),
@@ -24,6 +49,7 @@ buildTable(G, T, States, I) :-
   runGoto(Symbols, [InitItem], P, [], States, T, I).
 
 % runGoto(+Symbols, +States, +Productions, +Table, -ResStates, -ResTable, -Info)
+% domknięcie względem operacji runGotoOnce
 runGoto(Symbols, States, P, Table, RStates, RTable, Info) :-
   runGotoOnce(Symbols, States, P, Table, States2, Table2, I),
   ( I \== yes ->
@@ -39,6 +65,7 @@ runGoto(Symbols, States, P, Table, RStates, RTable, Info) :-
   ).
 
 % runGotoOnce(+Symbols, +States, +Productions, +Table, -RStates, -RTable, -Info)
+% dodaje przejścia goto względem każdego symbolu
 runGotoOnce([], States, _, Table, RStates, RTable, Info) :-
   RStates = States,
   RTable = Table,
@@ -55,6 +82,7 @@ runGotoOnce([H | T], States, P, Table, RStates, RTable, Info) :-
   ).
 
 % runGotoSymbol(+States, +AllS, +Symbol, +P, +Table, -RStates, -RTable, -Info)
+% dodaje prześcia do tabeli oraz nowe stany wykonując goto dla danego symbolu
 runGotoSymbol([], AllS, _, _, Table, RStates, RTable, Info) :-
   RStates = AllS,
   RTable = Table,
@@ -80,6 +108,7 @@ runGotoSymbol([H | T], AllS, S, P, Table, RStates, RTable, Info) :-
   ).
 
 % addStateToStateList(+List, +State, -Result)
+% dostaje listę stanów oraz stan, zwraca rozszerzoną listę stanów
 addStateToStateList(L, [], L).
 addStateToStateList(L, S, R) :-
   ( member(S, L) ->
@@ -89,6 +118,9 @@ addStateToStateList(L, S, R) :-
   ).
 
 % checkTableConflict(+Table, +Element)
+% sprawdza czy dodania danego elementu do tabeli spowoduje konflikt tj.
+% już istnieje w tabeli reguła z tego samego stanu, po tym samym symbolu,
+% ale z inną akcją końcową
 checkTableConflict([], _).
 checkTableConflict([H | T], E) :-
   (A, S, B) = H,
@@ -96,6 +128,7 @@ checkTableConflict([H | T], E) :-
   ( A == X, S == C, B \= Y -> fail ; checkTableConflict(T, E) ).
 
 % addElemToTable(+Table, +Element, -ResultTable, -Info)
+% dodaje element do tabeli
 addElemToTable(T, E, R, I) :-
   ( checkTableConflict(T, E) ->
     append([T, [E]], R0),
@@ -110,19 +143,19 @@ remove_dups(A, B) :- list_to_set(A, B).
 head([X | _], X).
 
 % createAutomatonWithTable(+Grammar, +Table, +States, -Automaton, -Info)
+% dostaje gramatykę, tabelę oraz stany, tworzy automat
 createAutomatonWithTable(G, T, S, A, I) :-
   gramatyka(_, GP) = G,
-  % debugStates(S),
-  % debugTable(T),
   splitTable(T, GT, AT1),
   addAccepts(S, AT1, AT2),
   tableSymbols(AT2, Symbols),
   flattenProductions(GP, P),
   addReduces(S, 0, P, Symbols, AT2, AT, I),
-  % debugGATables(GT, AT),
   A = (AT, GT, P).
 
 % addReduces(+States, +Index, +Productions, +Symbols, +ATable, -ResultAT, -Info)
+% dodaje do tabeli action redukcje tj. punkt 4 w
+% https://pl.wikipedia.org/wiki/Generowanie_parser%C3%B3w_LR#Tworzenie_tabel_action_i_goto
 addReduces([], _, _, _, AT, AT, yes).
 addReduces([H | T], I, P, S, AT, RT, Info) :-
   productionsInState(H, P, PNums),
@@ -151,6 +184,7 @@ addReduces([H | T], I, P, S, AT, RT, Info) :-
   ).
 
 % addReduceRow(+Symbols, +From, +To, +ATable, -Result, -Info)
+% dodaje do tabeli action pełny wiersz redukcji reguły To
 addReduceRow([], _, _, A, A, yes).
 addReduceRow([H | T], F, To, AT, R, Info) :-
   addReduceRow(T, F, To, AT, R1, I1),
@@ -161,6 +195,8 @@ addReduceRow([H | T], F, To, AT, R, Info) :-
   ).
 
 % productionsInState(+State, +Productions, -NumP)
+% dla stanu (zbioru sytuacji) oraz listy produkcji zwraca listę produkcji
+% takich że stan zawiera sytuację A → α•, dla produkcji postaci A → α
 productionsInState([], _, []).
 productionsInState([H | T], P, R) :-
   productionsInState(T, P, R1),
@@ -171,9 +207,12 @@ productionsInState([H | T], P, R) :-
   ).
 
 % nthProductionItem(+Productions, +Item, -Res)
+% pomocnicza do nthProductionItem/4
 nthProductionItem(P, I, R) :- nthProductionItem(P, I, 0, R).
 
 % nthProductionItem(+Productions, +Item, +Index, -Res)
+% dla listy produkcji oraz sytuacji postaci A → α• zwraca numer produkcji
+% A → α lub -1 w p. p.
 nthProductionItem([], _, _, -1).
 nthProductionItem([(L, P) | T], item(L, P, X), Index, R) :-
   !,
@@ -190,9 +229,12 @@ nthProductionItem([_ | T], I, Index, R) :-
   nthProductionItem(T, I, Index1, R).
 
 % addAccepts(+States, +ActionTable, -ResultActionTable)
+% pomocnicza do addAccepts/4
 addAccepts(S, AT, R) :- addAccepts(S, 0, AT, R).
 
 % addAccepts(+States, +Index, +ActionTable, -ResultActionTable)
+% dodaje regułę acc, punkt 3 w
+% https://pl.wikipedia.org/wiki/Generowanie_parser%C3%B3w_LR#Tworzenie_tabel_action_i_goto
 addAccepts([], _, AT, AT).
 addAccepts([H | T], I, AT, R) :-
   I1 is I + 1,
@@ -204,6 +246,8 @@ addAccepts([H | T], I, AT, R) :-
   ).
 
 % flattenProductions(+Productions, -FlatProductions)
+% zamienia listę produkcji na 'płaską' reprezentację tj.
+% listę par postaci (lewa, prawa) strona produkcji
 flattenProductions([], []).
 flattenProductions([prod(_, []) | T], F) :-
   flattenProductions(T, F).
@@ -212,10 +256,12 @@ flattenProductions([prod(L, [P | R]) | T], F) :-
   F = [(L, P) | F1].
 
 % stateIsAccepting(+State)
+% powodzi się jeżeli stan (zbiór sytuacji) zawiera sytuację Z -> S•#
 stateIsAccepting([item('Z', [nt(_), #], 1) | _]) :- !.
 stateIsAccepting([_ | T]) :- stateIsAccepting(T).
 
 % splitTable(+Table, -GotoTable, -ActionTable)
+% dzieli tabelę stworzoną przez buildTable na tabele goto oraz action
 splitTable([], [], []).
 splitTable([H | T], G, A) :-
   splitTable(T, G1, A1),
@@ -229,16 +275,20 @@ splitTable([H | T], G, A) :-
   ).
 
 % makeShift(+Rule, -Shift)
+% tworzy z reguły przejścia z tabeli regułę shift
 makeShift(R, S) :-
   (A, C, B) = R,
   S = (A, C, s(B)).
 
-% makeConflict(+ErrorMessage, -Automaton, -Info)
-makeConflict(E, A, I) :-
+% makeConflict(+ErrorMessage, -Data, -Info)
+% dostaje opis konfliktu, ustawia Info oraz Data
+makeConflict(E, D, I) :-
   I = konflikt(E),
-  A = null.
+  D = null.
 
 % rightSymbols(+ProductionsList, -Symbols)
+% dostaje listę produkcji gramatyki, zwraca listę symboli występujących po
+% prawych stronach poza #
 rightSymbols([], []).
 rightSymbols([H | T], S) :-
   rightSymbols(T, ST),
@@ -249,6 +299,9 @@ rightSymbols([H | T], S) :-
   delete(SUniq, #, S).
 
 % clojure(+Items, +ProductionsList, -ClojureOfItems)
+% domknięcie zbioru sytuacji względem operacji clojureOnce
+% implementacja algorytmu z
+% https://pl.wikipedia.org/wiki/Generowanie_parser%C3%B3w_LR #Domkni.C4.99cie_zbior.C3.B3w_sytuacji
 clojure(I, P, C) :-
   clojureOnce(I, P, C1),
   ( I == C1 -> C = C1 ; clojure(C1, P, C) ).
@@ -289,11 +342,15 @@ rightSidesToItems([H | T], L, I) :-
   I = [Item | IT].
 
 % goto(+From, +Symbol, +ProductionsList, -To)
+% implementacja Goto z
+% https://pl.wikipedia.org/wiki/Generowanie_parser%C3%B3w_LR#Znajdowanie_osi.C4.85galnych_zbior.C3.B3w_sytuacji_i_przej.C5.9B.C4.87_pomi.C4.99dzy_nimi
 goto(F, S, P, To) :-
   moveItems(F, S, Res),
   clojure(Res, P, To).
 
 % indexOf(+List, +Element, -Index)
+% funkcja pomocnicza: dostaje listę oraz element, zwraca pierwszy indeks
+% wystąpienia tego elementu na liście
 indexOf([E | _], E, 0).
 indexOf([_ | T], E, I) :-
   indexOf(T, E, Index),
@@ -318,13 +375,13 @@ accept(A, W) :-
   accept(WWithEnd, A, [0]).
 
 % accept(+Word, +Automaton, +Stack)
+% dostaje wyraz z dodanym znakiem końcowym, automat oraz aktualny stos
+% powodzi się wtw gdy automat akceptuje wyraz
 accept([], _, _) :- fail.
 accept([C | T], A, S) :-
   (AT, GT, Prod) = A,
   head(S, State),
   currentAction(AT, State, C, Action),
-  % write(Action),
-  % write('\n'),
   ( actionIsTerminal(Action) ->
     ( Action == acc ->
       true
@@ -346,27 +403,29 @@ accept([C | T], A, S) :-
   ).
 
 % dropN(+List, +N, -Result)
+% dostaje listę oraz liczbę N, zwraca listę bez N pierwszych elementów
 dropN(L, 0, L).
 dropN([_ | T], N, R) :-
   N1 is N - 1,
   dropN(T, N1, R).
 
+% actionIsTerminal(+Action)
+% udaje się jeżeli akcja jest terminalna
+% tj. taka że accept kończy swoje działanie na tej akcji
 actionIsTerminal(err) :- !.
 actionIsTerminal(acc) :- !.
 actionIsTerminal(_) :- !, fail.
 
 % currentAction(+Table, +State, +Character, -Action)
+% dostaje tabelę (goto/action), aktualny stan oraz symbol, zwraca akcję
 currentAction([], _, _, err).
 currentAction([(S, C, A) | _], S, C, A) :- !.
 currentAction([_ | T], S, C, A) :-
   currentAction(T, S, C, A).
 
-% extendGrammar(+Grammar, -ExtendedGrammar)
-extendGrammar(G, E) :-
-  gramatyka(S, L) = G,
-  E = gramatyka(S, [prod('Z', [[nt(S), #]]) | L]).
-
 % tableSymbols(+Table, -Symbols)
+% zwraca wszystkie symbole, które występują w tabeli
+% tj. istnieje przejście po tym symbolu
 tableSymbols([], []).
 tableSymbols([H | T], S) :-
   (_, X, _) = H,
@@ -374,6 +433,7 @@ tableSymbols([H | T], S) :-
   remove_dups([X | S1], S).
 
 % actionNumber(+Action, -Number)
+% dla akcji zwraca liczbę - nr stanu/reguły gramatyki
 actionNumber(s(X), X) :- !.
 actionNumber(r(X), X) :- !.
 actionNumber(acc, 0) :- !.
