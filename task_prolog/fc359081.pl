@@ -80,7 +80,7 @@ runGotoSymbol([H | T], AllS, S, P, Table, RStates, RTable, Info) :-
   ).
 
 % addStateToStateList(+List, +State, -Result)
-addStateToStateList(L, [], R) :- R = L.
+addStateToStateList(L, [], L).
 addStateToStateList(L, S, R) :-
   ( member(S, L) ->
     R = L
@@ -106,7 +106,8 @@ addElemToTable(T, E, R, I) :-
   ).
 
 % TODO: remove, swipl remove_dups.
-% remove_dups(A, B) :- list_to_set(A, B).
+remove_dups(A, B) :- list_to_set(A, B).
+head([X | _], X).
 
 % createAutomatonWithTable(+Grammar, +Table, +States, -Automaton, -Info)
 createAutomatonWithTable(G, T, S, A, I) :-
@@ -238,7 +239,7 @@ makeConflict(E, A, I) :-
   A = null.
 
 % rightSymbols(+ProductionsList, -Symbols)
-rightSymbols([], S) :- S = [].
+rightSymbols([], []).
 rightSymbols([H | T], S) :-
   rightSymbols(T, ST),
   prod(_, P) = H,
@@ -253,7 +254,7 @@ clojure(I, P, C) :-
   ( I == C1 -> C = C1 ; clojure(C1, P, C) ).
 
 % clojureOnce(+Items, +ProductionsList, -ClojureOfItems)
-clojureOnce([], _, C) :- C = [].
+clojureOnce([], _, []).
 clojureOnce([H | T], P, C) :-
   clojureItem(H, P, CH),
   clojureOnce(T, P, CT),
@@ -271,7 +272,7 @@ clojureItem(I, P, C) :-
   ).
 
 % itemsFromProductions(+ProductionsList, +Symbol, -Items)
-itemsFromProductions([], _, I) :- I = [].
+itemsFromProductions([], _, []).
 itemsFromProductions([H | T], S, I) :-
   H = prod(L, R),
   ( nt(L) = S ->
@@ -281,7 +282,7 @@ itemsFromProductions([H | T], S, I) :-
   ).
 
 % rightSidesToItems(+RightSidesList, +LeftSymbol, -Items)
-rightSidesToItems([], _, I) :- I = [].
+rightSidesToItems([], _, []).
 rightSidesToItems([H | T], L, I) :-
   rightSidesToItems(T, L, IT),
   Item = item(L, H, 0),
@@ -293,13 +294,13 @@ goto(F, S, P, To) :-
   clojure(Res, P, To).
 
 % indexOf(+List, +Element, -Index)
-indexOf([E | _], E, I) :- I = 0.
+indexOf([E | _], E, 0).
 indexOf([_ | T], E, I) :-
   indexOf(T, E, Index),
   I is Index + 1.
 
 % moveItems(+Items, +Symbol, -ResultItems)
-moveItems([], _, R) :- R = [].
+moveItems([], _, []).
 moveItems([H | T], S, Res) :-
   moveItems(T, S, ResT),
   item(L, R, Index) = H,
