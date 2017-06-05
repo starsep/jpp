@@ -105,6 +105,9 @@ addElemToTable(T, E, R, I) :-
     makeConflict('shift-reduce', R, I)
   ).
 
+% TODO: remove, swipl remove_dups.
+% remove_dups(A, B) :- list_to_set(A, B).
+
 % createAutomatonWithTable(+Grammar, +Table, +States, -Automaton, -Info)
 createAutomatonWithTable(G, T, S, A, I) :-
   gramatyka(_, GP) = G,
@@ -116,7 +119,7 @@ createAutomatonWithTable(G, T, S, A, I) :-
   flattenProductions(GP, P),
   addReduces(S, 0, P, Symbols, AT2, AT, I),
   % debugGATables(GT, AT),
-  A = (GT, AT).
+  A = (AT, GT, P).
 
 % addReduces(+States, +Index, +Productions, +Symbols, +ATable, -ResultAT, -Info)
 addReduces([], _, _, _, AT, AT, yes).
@@ -309,7 +312,53 @@ moveItems([H | T], S, Res) :-
   ).
 
 % accept(+Automaton, +Word)
-accept(_A, _W).
+accept(A, W) :-
+  append([W, [#]], WWithEnd),
+  accept(WWithEnd, A, [0]).
+
+% accept(+Word, +Automaton, +Stack)
+accept([], _, _) :- fail.
+accept([C | T], A, S) :-
+  (AT, GT, Prod) = A,
+  head(S, State),
+  currentAction(AT, State, C, Action),
+  % write(Action),
+  % write('\n'),
+  ( actionIsTerminal(Action) ->
+    ( Action == acc ->
+      true
+    ;
+      fail
+    )
+  ;
+    ( s(N) = Action ->
+      accept(T, A, [N | S])
+    ;
+      r(N) = Action,
+      nth0(N, Prod, (L, P)),
+      length(P, Q),
+      dropN(S, Q, S1),
+      head(S1, State1),
+      currentAction(GT, State1, nt(L), NewState),
+      accept([C | T], A, [NewState | S1])
+    )
+  ).
+
+% dropN(+List, +N, -Result)
+dropN(L, 0, L).
+dropN([_ | T], N, R) :-
+  N1 is N - 1,
+  dropN(T, N1, R).
+
+actionIsTerminal(err) :- !.
+actionIsTerminal(acc) :- !.
+actionIsTerminal(_) :- !, fail.
+
+% currentAction(+Table, +State, +Character, -Action)
+currentAction([], _, _, err).
+currentAction([(S, C, A) | _], S, C, A) :- !.
+currentAction([_ | T], S, C, A) :-
+  currentAction(T, S, C, A).
 
 % extendGrammar(+Grammar, -ExtendedGrammar)
 extendGrammar(G, E) :-
@@ -327,7 +376,6 @@ tableSymbols([H | T], S) :-
 actionNumber(s(X), X) :- !.
 actionNumber(r(X), X) :- !.
 actionNumber(acc, 0) :- !.
-actionNumber(err, 0) :- !.
 actionNumber(X, X).
 
 % -------------------------- DEBUG UTILS --------------------------------------
@@ -434,7 +482,6 @@ debugSymbol(nt(N)) :- write(N), !.
 debugSymbol(s(N)) :- write('s'), write(N), !.
 debugSymbol(r(N)) :- write('r'), write(N), !.
 debugSymbol(acc) :- write('a'), !.
-debugSymbol(err) :- write('e'), !.
 debugSymbol(S) :- write(S).
 
 % debugItems(+Items)

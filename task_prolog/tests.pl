@@ -1,14 +1,14 @@
 :- initialization(main).
 main :-
   consult(fc359081),
-  test(ex0, []),
+  test(ex0, [['1', '+', '1']]),
   test(ex1, [[id], ['(',id,')'], [id,'+',ident], [id,'+',id]]),
   test(ex2, []),
-  test(ex3, []),
-  test(ex4, []),
-  test(ex5, []),
-  test(ex6, []),
-  test(ex7, []),
+  % test(ex3, []),
+  % test(ex4, []),
+  % test(ex5, []),
+  % test(ex6, []),
+  % test(ex7, []),
   halt.
 main :-
   halt(1).
@@ -109,7 +109,7 @@ grammar(ex7, gramatyka('E', [
 % test(+NazwaGramatyki, +ListaSlowDoZbadania)
 test(NG, ListaSlow) :-
   grammar(NG, G),
-  debugGrammar(G),
+  % debugGrammar(G),
   createLR(G, Automat, Info),
   write('Automat building info: '),
   write(Info),
