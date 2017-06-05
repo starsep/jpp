@@ -107,14 +107,75 @@ addElemToTable(T, E, R, I) :-
 
 
 % createAutomatonWithTable(+Grammar, +Table, +States, -Automaton, -Info)
-createAutomatonWithTable(_G, T, S, A, I) :-
+createAutomatonWithTable(G, T, S, A, I) :-
+  gramatyka(_, GP) = G,
   debugStates(S),
   debugTable(T),
   splitTable(T, GT, AT1),
-  addAccepts(S, AT1, AT),
+  addAccepts(S, AT1, AT2),
+  tableSymbols(AT2, Symbols),
+  flattenProductions(GP, P),
+  addReduces(S, 0, P, Symbols, AT2, AT, Info),
   debugGATables(GT, AT),
   A = null,
   I = yes.
+
+% addReduces(+States, +Index, +Productions, +Symbols, +ATable, -ResultAT, -Info)
+addReduces([], _, _, _, AT, AT, yes).
+addReduces([H | T], I, P, S, AT, RT, Info) :-
+  productionsInState(H, P, PNums),
+  length(PNums, Len),
+  ( Len < 2 ->
+    I1 is I + 1,
+    addReduces(T, I1, P, S, AT, RT1, Info),
+    ( Len == 0 ->
+      RT = RT1
+    ;
+      [Target] = PNums,
+      ( Target == 0 ->
+        RT = RT1
+      ;
+        addReduceRow(S, I, Target, RT1, RT)
+      )
+    )
+  ;
+    makeConflict('reduce-reduce', RT, Info)
+  ).
+
+% addReduceRow(+Symbols, +From, +To, +ATable, -Result)
+addReduceRow([], _, _, A, A).
+addReduceRow([H | T], F, To, AT, R) :-
+  addReduceRow(T, F, To, AT, R1),
+  R = [(F, H, r(To)) | R1].
+
+% productionsInState(+State, +Productions, -NumP)
+productionsInState([], _, []).
+productionsInState([H | T], P, R) :-
+  productionsInState(T, P, R1),
+  ( nthProductionItem(P, H, Q), Q \== -1 ->
+    R = [Q | R1]
+  ;
+    R = R1
+  ).
+
+% nthProductionItem(+Productions, +Item, -Res)
+nthProductionItem(P, I, R) :- nthProductionItem(P, I, 0, R).
+
+% nthProductionItem(+Productions, +Item, +Index, -Res)
+nthProductionItem([], _, _, -1).
+nthProductionItem([(L, P) | T], item(L, P, X), Index, R) :-
+  !,
+  length(P, Len),
+  ( X == Len ->
+    R = Index
+  ;
+    Index1 is Index + 1,
+    nthProductionItem(T, I, Index1, R)
+  ).
+
+nthProductionItem([_ | T], I, Index, R) :-
+  Index1 is Index + 1,
+  nthProductionItem(T, I, Index1, R).
 
 % addAccepts(+States, +ActionTable, -ResultActionTable)
 addAccepts(S, AT, R) :- addAccepts(S, 0, AT, R).
@@ -129,6 +190,14 @@ addAccepts([H | T], I, AT, R) :-
   ;
     R = R1
   ).
+
+% flattenProductions(+Productions, -FlatProductions)
+flattenProductions([], []).
+flattenProductions([prod(_, []) | T], F) :-
+  flattenProductions(T, F).
+flattenProductions([prod(L, [P | R]) | T], F) :-
+  flattenProductions([prod(L, R) | T], F1),
+  F = [(L, P) | F1].
 
 % stateIsAccepting(+State)
 stateIsAccepting([item('Z', [nt(_), #], 1) | _]) :- !.
