@@ -2,12 +2,13 @@
 main :-
   consult(fc359081),
   test(ex0, []),
-  % test(ex1, [[id], ['(',id,')'], [id,'+',ident], [id,'+',id]]),
-  % test(ex2, [[id], ['(',id,')'], [id,'+',ident], [id,'+',id]]),
-  % test(ex3, [[id], ['(',id,')'], [id,'+',ident], [id,'+',id]]),
-  % test(ex4, [[id], ['(',id,')'], [id,'+',ident], [id,'+',id]]),
-  % test(ex5, [[id], ['(',id,')'], [id,'+',ident], [id,'+',id]]),
-  % test(ex6, [[id], ['(',id,')'], [id,'+',ident], [id,'+',id]]),
+  test(ex1, [[id], ['(',id,')'], [id,'+',ident], [id,'+',id]]),
+  test(ex2, []),
+  test(ex3, []),
+  test(ex4, []),
+  test(ex5, []),
+  test(ex6, []),
+  test(ex7, []),
   halt.
 main :-
   halt(1).
@@ -88,6 +89,20 @@ grammar(ex6, gramatyka('A', [
   ]),
   prod('B', [
     [x]
+  ])
+])).
+
+% z wiki, reduce-reduce
+grammar(ex7, gramatyka('E', [
+  prod('E', [
+    [nt('A'), 1],
+    [nt('B'), 2]
+  ]),
+  prod('A', [
+    [1]
+  ]),
+  prod('B', [
+    [1]
   ])
 ])).
 

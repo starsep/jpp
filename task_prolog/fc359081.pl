@@ -105,20 +105,18 @@ addElemToTable(T, E, R, I) :-
     makeConflict('shift-reduce', R, I)
   ).
 
-
 % createAutomatonWithTable(+Grammar, +Table, +States, -Automaton, -Info)
 createAutomatonWithTable(G, T, S, A, I) :-
   gramatyka(_, GP) = G,
-  debugStates(S),
-  debugTable(T),
+  % debugStates(S),
+  % debugTable(T),
   splitTable(T, GT, AT1),
   addAccepts(S, AT1, AT2),
   tableSymbols(AT2, Symbols),
   flattenProductions(GP, P),
-  addReduces(S, 0, P, Symbols, AT2, AT, Info),
-  debugGATables(GT, AT),
-  A = null,
-  I = yes.
+  addReduces(S, 0, P, Symbols, AT2, AT, I),
+  % debugGATables(GT, AT),
+  A = (GT, AT).
 
 % addReduces(+States, +Index, +Productions, +Symbols, +ATable, -ResultAT, -Info)
 addReduces([], _, _, _, AT, AT, yes).
@@ -127,26 +125,36 @@ addReduces([H | T], I, P, S, AT, RT, Info) :-
   length(PNums, Len),
   ( Len < 2 ->
     I1 is I + 1,
-    addReduces(T, I1, P, S, AT, RT1, Info),
-    ( Len == 0 ->
-      RT = RT1
+    addReduces(T, I1, P, S, AT, RT1, Info1),
+    ( Info1 \== yes ->
+      Info = Info1
     ;
-      [Target] = PNums,
-      ( Target == 0 ->
-        RT = RT1
+      ( Len == 0 ->
+        RT = RT1,
+        Info = Info1
       ;
-        addReduceRow(S, I, Target, RT1, RT)
+        [Target] = PNums,
+        ( Target == 0 ->
+          RT = RT1,
+          Info = Info1
+        ;
+          addReduceRow(S, I, Target, RT1, RT, Info)
+        )
       )
     )
   ;
     makeConflict('reduce-reduce', RT, Info)
   ).
 
-% addReduceRow(+Symbols, +From, +To, +ATable, -Result)
-addReduceRow([], _, _, A, A).
-addReduceRow([H | T], F, To, AT, R) :-
-  addReduceRow(T, F, To, AT, R1),
-  R = [(F, H, r(To)) | R1].
+% addReduceRow(+Symbols, +From, +To, +ATable, -Result, -Info)
+addReduceRow([], _, _, A, A, yes).
+addReduceRow([H | T], F, To, AT, R, Info) :-
+  addReduceRow(T, F, To, AT, R1, I1),
+  ( I1 \== yes ->
+    Info = I1
+  ;
+    addElemToTable(R1, (F, H, r(To)), R, Info)
+  ).
 
 % productionsInState(+State, +Productions, -NumP)
 productionsInState([], _, []).
@@ -170,7 +178,7 @@ nthProductionItem([(L, P) | T], item(L, P, X), Index, R) :-
     R = Index
   ;
     Index1 is Index + 1,
-    nthProductionItem(T, I, Index1, R)
+    nthProductionItem(T, item(L, P, X), Index1, R)
   ).
 
 nthProductionItem([_ | T], I, Index, R) :-
@@ -315,6 +323,15 @@ tableSymbols([H | T], S) :-
   tableSymbols(T, S1),
   remove_dups([X | S1], S).
 
+% actionNumber(+Action, -Number)
+actionNumber(s(X), X) :- !.
+actionNumber(r(X), X) :- !.
+actionNumber(acc, 0) :- !.
+actionNumber(err, 0) :- !.
+actionNumber(X, X).
+
+% -------------------------- DEBUG UTILS --------------------------------------
+
 % tableToRectTable(+Table, -Symbols, -RectTable)
 tableToRectTable(T, S, R) :-
   tableSymbols(T, S),
@@ -325,13 +342,6 @@ tableToRectTable(T, S, R) :-
 tableRows(T, R) :-
   tableRowsH(T, R1),
   R is R1 + 1.
-
-% actionNumber(+Action, -Number)
-actionNumber(s(X), X) :- !.
-actionNumber(r(X), X) :- !.
-actionNumber(acc, 0) :- !.
-actionNumber(err, 0) :- !.
-actionNumber(X, X).
 
 % tableRowsH(+Table, -Rows)
 tableRowsH([], 0).
@@ -382,7 +392,6 @@ emptyRow(L, R) :-
   L1 is L - 1,
   emptyRow(L1, R1),
   R = ['.' | R1].
-
 
 % --------------------------- DEBUG -------------------------------------
 
