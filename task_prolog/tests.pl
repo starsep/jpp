@@ -120,7 +120,7 @@ checkWords([], _) :-
   write('Koniec testu.\n').
 
 checkWords([S|RS], Automat) :-
-  format(" Słowo: ~p ", [S]),
+  format(" Slowo: ~p ", [S]),
   (accept(Automat, S) -> true; write('NIE ')),
   write('nalezy.\n'),
   checkWords(RS, Automat).

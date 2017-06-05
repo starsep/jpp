@@ -9,7 +9,7 @@
 % Stany to listy sytuacji
 % Sytuacja to produkcja 'z kropką', reprezentowana jako trójka (L, P, N), gdzie
 % L to lewa strona produkcji, P prawa, N nr miejsca kropki
-% Tabele goto i action reprezenuję jako listy trójek postaci (N, C, A), gdzie
+% Tabele goto i action reprezentuję jako listy trójek postaci (N, C, A), gdzie
 % - N to numer stanu, z którego przechodzimy
 % - C to symbol (terminal/nonterminal)
 % - A to akcja:
@@ -118,7 +118,7 @@ addStateToStateList(L, S, R) :-
   ).
 
 % checkTableConflict(+Table, +Element)
-% sprawdza czy dodania danego elementu do tabeli spowoduje konflikt tj.
+% sprawdza czy dodanie danego elementu do tabeli spowoduje konflikt tj.
 % już istnieje w tabeli reguła z tego samego stanu, po tym samym symbolu,
 % ale z inną akcją końcową
 checkTableConflict([], _).
@@ -383,11 +383,7 @@ accept([C | T], A, S) :-
   head(S, State),
   currentAction(AT, State, C, Action),
   ( actionIsTerminal(Action) ->
-    ( Action == acc ->
-      true
-    ;
-      fail
-    )
+    Action == acc
   ;
     ( s(N) = Action ->
       accept(T, A, [N | S])
