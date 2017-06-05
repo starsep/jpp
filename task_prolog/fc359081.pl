@@ -9,25 +9,24 @@ createLR(G, A, I) :-
 
 % createAutomaton(+Grammar, -Automaton, -Info)
 createAutomaton(G, A, I) :-
-  buildTable(G, T, InfoTable),
+  buildTable(G, Table, States, InfoTable),
   ( InfoTable \== yes ->
     makeConflict(InfoTable, A, I)
   ;
-    createAutomatonWithTable(G, T, A, I)
+    createAutomatonWithTable(G, Table, States, A, I)
   ).
 
-% buildTable(+Grammar, -Table, -Info)
-buildTable(G, T, I) :-
+% buildTable(+Grammar, -Table, -States, -Info)
+buildTable(G, T, States, I) :-
   gramatyka(S, P) = G,
   clojure([item('Z', [nt(S), #], 0)], P, InitItem),
   rightSymbols(P, Symbols),
-  runGoto(Symbols, [InitItem], P, [], _States, T, I).
+  runGoto(Symbols, [InitItem], P, [], States, T, I).
 
 % runGoto(+Symbols, +States, +Productions, +Table, -ResStates, -ResTable, -Info)
 runGoto(Symbols, States, P, Table, RStates, RTable, Info) :-
-  % trace,
   runGotoOnce(Symbols, States, P, Table, States2, Table2, I),
-  ( I \= yes ->
+  ( I \== yes ->
     Info = I
   ;
     ( States == States2, Table == Table2 ->
@@ -47,7 +46,7 @@ runGotoOnce([], States, _, Table, RStates, RTable, Info) :-
 
 runGotoOnce([H | T], States, P, Table, RStates, RTable, Info) :-
   runGotoSymbol(States, States, H, P, Table, RS, RT, I),
-  ( Info \= yes ->
+  ( I \== yes ->
     Info = I,
     RTable = RT,
     RStates = RS
@@ -72,7 +71,7 @@ runGotoSymbol([H | T], AllS, S, P, Table, RStates, RTable, Info) :-
     nth0(Index1, AllS2, To),
     addElemToTable(Table, (Index0, S, Index1), Table2, I)
   ),
-  ( I \= yes ->
+  ( I \== yes ->
     Info = I,
     RStates = [],
     RTable = []
@@ -103,17 +102,37 @@ addElemToTable(T, E, R, I) :-
     remove_dups(R0, R),
     I = yes
   ;
-    makeConflict('TODO: change, konflikt tabeli :c', R, I)
+    makeConflict('shift-reduce', R, I)
   ).
 
 
-% createAutomatonWithTable(+Grammar, +Table, -Automaton, -Info)
-createAutomatonWithTable(_G, T, A, I) :-
+% createAutomatonWithTable(+Grammar, +Table, +States, -Automaton, -Info)
+createAutomatonWithTable(_G, T, S, A, I) :-
+  debugStates(S),
   debugTable(T),
-  splitTable(T, GT, AT),
+  splitTable(T, GT, AT1),
+  addAccepts(S, AT1, AT),
   debugGATables(GT, AT),
   A = null,
   I = yes.
+
+% addAccepts(+States, +ActionTable, -ResultActionTable)
+addAccepts(S, AT, R) :- addAccepts(S, 0, AT, R).
+
+% addAccepts(+States, +Index, +ActionTable, -ResultActionTable)
+addAccepts([], _, AT, AT).
+addAccepts([H | T], I, AT, R) :-
+  I1 is I + 1,
+  addAccepts(T, I1, AT, R1),
+  ( stateIsAccepting(H) ->
+    R = [(I, #, acc) | R1]
+  ;
+    R = R1
+  ).
+
+% stateIsAccepting(+State)
+stateIsAccepting([item('Z', [nt(_), #], 1) | _]) :- !.
+stateIsAccepting([_ | T]) :- stateIsAccepting(T).
 
 % splitTable(+Table, -GotoTable, -ActionTable)
 splitTable([], [], []).
@@ -124,8 +143,14 @@ splitTable([H | T], G, A) :-
     A = A1
   ;
     G = G1,
-    A = [H | A1]
+    makeShift(H, Shift),
+    A = [Shift | A1]
   ).
+
+% makeShift(+Rule, -Shift)
+makeShift(R, S) :-
+  (A, C, B) = R,
+  S = (A, C, s(B)).
 
 % makeConflict(+ErrorMessage, -Automaton, -Info)
 makeConflict(E, A, I) :-
@@ -232,10 +257,18 @@ tableRows(T, R) :-
   tableRowsH(T, R1),
   R is R1 + 1.
 
+% actionNumber(+Action, -Number)
+actionNumber(s(X), X) :- !.
+actionNumber(r(X), X) :- !.
+actionNumber(acc, 0) :- !.
+actionNumber(err, 0) :- !.
+actionNumber(X, X).
+
 % tableRowsH(+Table, -Rows)
 tableRowsH([], 0).
 tableRowsH([H | T], R) :-
-  (X, _, Y) = H,
+  (X, _, Y1) = H,
+  actionNumber(Y1, Y),
   tableRowsH(T, R1),
   R2 is max(X, Y),
   R is max(R1, R2).
@@ -319,12 +352,12 @@ debugRightSides([H | T]) :-
   debugRightSides(T).
 
 % debugSymbol(+Symbol)
-debugSymbol(S) :-
-  ( nt(N) = S ->
-    write(N)
-  ;
-    write(S)
-  ).
+debugSymbol(nt(N)) :- write(N), !.
+debugSymbol(s(N)) :- write('s'), write(N), !.
+debugSymbol(r(N)) :- write('r'), write(N), !.
+debugSymbol(acc) :- write('a'), !.
+debugSymbol(err) :- write('e'), !.
+debugSymbol(S) :- write(S).
 
 % debugItems(+Items)
 debugItems([]).
@@ -364,7 +397,6 @@ debugHeader([H | T]) :-
   write('  '),
   debugSymbol(H),
   debugHeader(T).
-
 
 % debugTable(+Table)
 debugTable(T) :-
