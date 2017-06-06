@@ -138,10 +138,6 @@ addElemToTable(T, E, R, I) :-
     makeConflict('shift-reduce', R, I)
   ).
 
-% TODO: remove, swipl remove_dups.
-remove_dups(A, B) :- list_to_set(A, B).
-head([X | _], X).
-
 % createAutomatonWithTable(+Grammar, +Table, +States, -Automaton, -Info)
 % dostaje gramatykę, tabelę oraz stany, tworzy automat
 createAutomatonWithTable(G, T, S, A, I) :-

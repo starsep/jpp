@@ -4,11 +4,11 @@ main :-
   test(ex0, [['1', '+', '1']]),
   test(ex1, [[id], ['(',id,')'], [id,'+',ident], [id,'+',id]]),
   test(ex2, []),
-  % test(ex3, []),
-  % test(ex4, []),
-  % test(ex5, []),
-  % test(ex6, []),
-  % test(ex7, []),
+  test(ex3, []),
+  test(ex4, []),
+  test(ex5, []),
+  test(ex6, []),
+  test(ex7, []),
   halt.
 main :-
   halt(1).
