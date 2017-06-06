@@ -1,6 +1,7 @@
 :- initialization(main).
 main :-
   consult(fc359081),
+  test(slajd, []),
   test(ex0, [['1', '+', '1']]),
   test(ex1, [[id], ['(',id,')'], [id,'+',ident], [id,'+',id]]),
   test(ex2, []),
@@ -104,6 +105,13 @@ grammar(ex7, gramatyka('E', [
   prod('B', [
     [1]
   ])
+])).
+
+grammar(slajd, gramatyka('S', [
+  prod('S', [[nt('E')]]),
+  prod('E', [[nt('E'), +, nt('T')], [nt('E'), -, nt('T')], [nt('T')]]),
+  prod('T', [[nt('T'), *, nt('F')], [nt('F')]]),
+  prod('F', [[1], [2]])
 ])).
 
 % test(+NazwaGramatyki, +ListaSlowDoZbadania)
