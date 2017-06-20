@@ -1,3 +1,6 @@
 [submodule "task_prolog/jpp-prolog-test"]
 	path = task_prolog/jpp-prolog-test
 	url = git@github.com:apaszke/jpp-prolog-test.git
+[submodule "task_smalltalk/SmalltalkTests"]
+	path = task_smalltalk/SmalltalkTests
+	url = git@github.com:prazek/SmalltalkTests.git
