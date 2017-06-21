@@ -1,13 +1,16 @@
 | package |
-package := Package name: 'jpp9'.
+package := Package name: 'jpp11'.
 package paxVersion: 1;
 	basicComment: ''.
 
 
 package classNames
 	add: #C;
+	add: #Clause;
+	add: #LogicalItem;
 	add: #Pair;
 	add: #Prolog;
+	add: #Rule;
 	add: #Term;
 	add: #V;
 	yourself.
@@ -24,19 +27,34 @@ package globalAliases: (Set new
 	yourself).
 
 package setPrerequisites: (IdentitySet new
-	add: 'Core\Object Arts\Dolphin\Base\Dolphin';
+	add: '..\Documents\Dolphin Smalltalk 7\Core\Object Arts\Dolphin\Base\Dolphin';
 	yourself).
 
 package!
 
 "Class Definitions"!
 
-Object subclass: #Prolog
+Object subclass: #LogicalItem
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
 	classInstanceVariableNames: ''!
-Object subclass: #Term
+Object subclass: #Prolog
+	instanceVariableNames: 'facts rules'
+	classVariableNames: ''
+	poolDictionaries: ''
+	classInstanceVariableNames: ''!
+Object subclass: #Rule
+	instanceVariableNames: 'head body'
+	classVariableNames: ''
+	poolDictionaries: ''
+	classInstanceVariableNames: ''!
+LogicalItem subclass: #Clause
+	instanceVariableNames: 'first rest'
+	classVariableNames: ''
+	poolDictionaries: ''
+	classInstanceVariableNames: ''!
+LogicalItem subclass: #Term
 	instanceVariableNames: ''
 	classVariableNames: ''
 	poolDictionaries: ''
@@ -68,9 +86,87 @@ Term subclass: #V
 
 "Classes"!
 
+LogicalItem guid: (GUID fromString: '{F191C0A1-76B4-4678-904B-810909F7E47F}')!
+LogicalItem comment: ''!
+!LogicalItem categoriesForClass!Kernel-Objects! !
+!LogicalItem methodsFor!
+
+& rest
+	^Clause first: self rest: rest!
+
+interpreter: p go: term do: action
+	self subclassResponsibility! !
+!LogicalItem categoriesFor: #&!public! !
+!LogicalItem categoriesFor: #interpreter:go:do:!public! !
+
 Prolog guid: (GUID fromString: '{F5BABEA8-918E-4A68-9AF3-6BE936D87D6B}')!
 Prolog comment: ''!
 !Prolog categoriesForClass!Kernel-Objects! !
+!Prolog methodsFor!
+
+fact: t
+	facts add: t!
+
+go: term do: action
+	facts do: [ :fact |
+		term interpreter: self go: fact do: action
+	].!
+
+head: h body: b
+	rules add: (Rule head: h body: b).!
+
+initialize
+	facts := OrderedCollection new.
+	rules := OrderedCollection new.! !
+!Prolog categoriesFor: #fact:!public! !
+!Prolog categoriesFor: #go:do:!public! !
+!Prolog categoriesFor: #head:body:!public! !
+!Prolog categoriesFor: #initialize!public! !
+
+!Prolog class methodsFor!
+
+new
+	^super new initialize! !
+!Prolog class categoriesFor: #new!public! !
+
+Rule guid: (GUID fromString: '{85D31ECF-FE43-455F-ABBB-789990A43323}')!
+Rule comment: ''!
+!Rule categoriesForClass!Kernel-Objects! !
+!Rule methodsFor!
+
+head: h body: b
+	head := h.
+	body := b.! !
+!Rule categoriesFor: #head:body:!public! !
+
+!Rule class methodsFor!
+
+head: h body: b
+	self new head: h body: b! !
+!Rule class categoriesFor: #head:body:!public! !
+
+Clause guid: (GUID fromString: '{0EE0BC45-445C-454D-9FF6-5209DFDF9718}')!
+Clause comment: ''!
+!Clause categoriesForClass!Kernel-Objects! !
+!Clause methodsFor!
+
+first: t rest: h
+	first := t.
+	rest := h.!
+
+interpreter: p go: term do: action
+	first interpreter: p go: term do: [ 
+		p go: rest do: action.
+	].! !
+!Clause categoriesFor: #first:rest:!public! !
+!Clause categoriesFor: #interpreter:go:do:!public! !
+
+!Clause class methodsFor!
+
+first: h rest: t
+	^self new first: h rest: t! !
+!Clause class categoriesFor: #first:rest:!public! !
+
 Term guid: (GUID fromString: '{2D30A7A8-31B7-4712-8FD8-B58AE27D4AF8}')!
 Term comment: ''!
 !Term categoriesForClass!Kernel-Objects! !
@@ -94,6 +190,12 @@ go: other do: action
 	V restoreDict: dict.
 	self restoreVars.
 	other restoreVars.!
+
+interpreter: p go: other do: action
+	self go: other do: action!
+
+isBound
+	self subclassResponsibility!
 
 restoreVars
 	self subclassResponsibility!
@@ -119,6 +221,8 @@ varInside: varName
 !Term categoriesFor: #,!public! !
 !Term categoriesFor: #@!public! !
 !Term categoriesFor: #go:do:!public! !
+!Term categoriesFor: #interpreter:go:do:!public! !
+!Term categoriesFor: #isBound!public! !
 !Term categoriesFor: #restoreVars!public! !
 !Term categoriesFor: #unify:!public! !
 !Term categoriesFor: #unifyPair:!public! !
@@ -131,6 +235,9 @@ C guid: (GUID fromString: '{328C54B7-C96D-472F-86A6-89BC75CEF3D6}')!
 C comment: ''!
 !C categoriesForClass!Kernel-Objects! !
 !C methodsFor!
+
+isBound
+	^true!
 
 printOn: aStream
 	aStream
@@ -161,6 +268,7 @@ value: v
 
 varInside: varName
 	^false! !
+!C categoriesFor: #isBound!public! !
 !C categoriesFor: #printOn:!public! !
 !C categoriesFor: #restoreVars!public! !
 !C categoriesFor: #unify:!public! !
@@ -191,6 +299,9 @@ cdr
 first: f second: s
 	first := f.
 	second := s!
+
+isBound
+	^(first isBound) & (second isBound).!
 
 printOn: aStream
 	aStream
@@ -232,6 +343,7 @@ varInside: varName
 !Pair categoriesFor: #car!public! !
 !Pair categoriesFor: #cdr!public! !
 !Pair categoriesFor: #first:second:!public! !
+!Pair categoriesFor: #isBound!public! !
 !Pair categoriesFor: #printOn:!public! !
 !Pair categoriesFor: #restoreVars!public! !
 !Pair categoriesFor: #unify:!public! !
@@ -279,7 +391,11 @@ ifNotBound: action
 	]!
 
 isBound
-	^self term notNil!
+	term ifNotNil: [:v |
+		^term isBound
+	] ifNil: [
+		^false
+	].!
 
 printOn: aStream
 	aStream
