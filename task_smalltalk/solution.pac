@@ -1,5 +1,5 @@
 | package |
-package := Package name: 'jpp7'.
+package := Package name: 'jpp9'.
 package paxVersion: 1;
 	basicComment: ''.
 
@@ -52,7 +52,7 @@ Term subclass: #Pair
 	poolDictionaries: ''
 	classInstanceVariableNames: ''!
 Term subclass: #V
-	instanceVariableNames: 'term varName'
+	instanceVariableNames: 'term varName dependentVars'
 	classVariableNames: 'Vars'
 	poolDictionaries: ''
 	classInstanceVariableNames: ''!
@@ -252,6 +252,9 @@ V comment: ''!
 !V categoriesForClass!Kernel-Objects! !
 !V methodsFor!
 
+addDependent: v
+	dependentVars add: v!
+
 assertBound
 	self term ifNil: [
 		self error: 'Variable is unbound'.
@@ -264,6 +267,16 @@ car
 cdr
 	self assertBound.
 	^self term cdr!
+
+ifBound: action
+	self isBound ifTrue: [
+		action value
+	]!
+
+ifNotBound: action
+	self isBound ifFalse: [
+		action value
+	]!
 
 isBound
 	^self term notNil!
@@ -292,37 +305,47 @@ term: t
 
 term: t varName: n
 	term := t.
-	varName := n!
+	varName := n.
+	dependentVars := Bag new.!
 
 unify: other
+	(other == self) ifTrue: [ ^true ].
 	(other varInside: (self varName)) ifTrue: [ ^false ].
 	^other unifyVariable: self!
 
 unifyPair: pair
-	self isBound ifTrue: [
+	self ifBound: [
 		^(self term) unifyPair: pair
 	].
 	self term: pair.
+	dependentVars do: [ :elem | elem unifyPair: pair. ].
 	^true!
 
 unifyValue: val
+	self ifBound: [
+		^(val value) = (self term value)
+	].
 	self term: val.
+	dependentVars do: [ :elem | elem unifyValue: val. ].
 	^true
 	!
 
 unifyVariable: other
-	(other isBound) ifTrue: [
-		(self isBound) ifTrue: [
+	self ifNotBound: [
+		(other varInside: (self varName)) ifTrue: [ ^false ].
+	].
+	other ifBound: [
+		self ifBound: [
 			^(self term) unify: (other term)
 		].
 		self term: (other term).
 		^true
 	].
-	(self isBound) ifTrue: [
+	self ifBound: [
 		^other unifyVariable: self
 	].
-	self term: other.
-	other term: self.
+	self addDependent: other.
+	other addDependent: self.
 	^true
 	!
 
@@ -335,9 +358,12 @@ varInside: v
 
 varName
 	^varName! !
+!V categoriesFor: #addDependent:!public! !
 !V categoriesFor: #assertBound!public! !
 !V categoriesFor: #car!public! !
 !V categoriesFor: #cdr!public! !
+!V categoriesFor: #ifBound:!public! !
+!V categoriesFor: #ifNotBound:!public! !
 !V categoriesFor: #isBound!public! !
 !V categoriesFor: #printOn:!public! !
 !V categoriesFor: #restoreVars!public! !
