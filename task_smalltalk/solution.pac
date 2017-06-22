@@ -1,5 +1,5 @@
 | package |
-package := Package name: 'jpp15'.
+package := Package name: 'jpp16'.
 package paxVersion: 1;
 	basicComment: ''.
 
@@ -116,7 +116,7 @@ go: term do: action
 		term interpreter: self go: fact do: action
 	].
 	rules do: [ :rule |
-		term interpreter: self go: (rule head) do: action
+		rule interpreter: self go: term do: action
 	].!
 
 head: h body: b
@@ -198,6 +198,11 @@ head: h body: b
 	head := h.
 	body := b.!
 
+interpreter: p go: term do: action
+	head interpreter: p go: term do: [
+		body interpreter: p go: head do: action
+	].!
+
 isBound
 	^head isBound & body isBound!
 
@@ -212,6 +217,7 @@ printOn: aStream
 !Rule categoriesFor: #body!public! !
 !Rule categoriesFor: #head!public! !
 !Rule categoriesFor: #head:body:!public! !
+!Rule categoriesFor: #interpreter:go:do:!public! !
 !Rule categoriesFor: #isBound!public! !
 !Rule categoriesFor: #printOn:!public! !
 
