@@ -1,5 +1,5 @@
 | package |
-package := Package name: 'jpp11'.
+package := Package name: 'jpp15'.
 package paxVersion: 1;
 	basicComment: ''.
 
@@ -44,13 +44,13 @@ Object subclass: #Prolog
 	classVariableNames: ''
 	poolDictionaries: ''
 	classInstanceVariableNames: ''!
-Object subclass: #Rule
-	instanceVariableNames: 'head body'
+LogicalItem subclass: #Clause
+	instanceVariableNames: 'first rest'
 	classVariableNames: ''
 	poolDictionaries: ''
 	classInstanceVariableNames: ''!
-LogicalItem subclass: #Clause
-	instanceVariableNames: 'first rest'
+LogicalItem subclass: #Rule
+	instanceVariableNames: 'head body'
 	classVariableNames: ''
 	poolDictionaries: ''
 	classInstanceVariableNames: ''!
@@ -95,9 +95,13 @@ LogicalItem comment: ''!
 	^Clause first: self rest: rest!
 
 interpreter: p go: term do: action
+	self subclassResponsibility!
+
+isBound
 	self subclassResponsibility! !
 !LogicalItem categoriesFor: #&!public! !
 !LogicalItem categoriesFor: #interpreter:go:do:!public! !
+!LogicalItem categoriesFor: #isBound!public! !
 
 Prolog guid: (GUID fromString: '{F5BABEA8-918E-4A68-9AF3-6BE936D87D6B}')!
 Prolog comment: ''!
@@ -110,6 +114,9 @@ fact: t
 go: term do: action
 	facts do: [ :fact |
 		term interpreter: self go: fact do: action
+	].
+	rules do: [ :rule |
+		term interpreter: self go: (rule head) do: action
 	].!
 
 head: h body: b
@@ -117,33 +124,29 @@ head: h body: b
 
 initialize
 	facts := OrderedCollection new.
-	rules := OrderedCollection new.! !
+	rules := OrderedCollection new.!
+
+printOn: aStream
+	aStream
+		nextPut: $P;
+		nextPut: $(;
+		print: facts;
+		nextPut: $,;
+		space;
+		print: rules;
+		nextPut: $).
+		! !
 !Prolog categoriesFor: #fact:!public! !
 !Prolog categoriesFor: #go:do:!public! !
 !Prolog categoriesFor: #head:body:!public! !
 !Prolog categoriesFor: #initialize!public! !
+!Prolog categoriesFor: #printOn:!public! !
 
 !Prolog class methodsFor!
 
 new
 	^super new initialize! !
 !Prolog class categoriesFor: #new!public! !
-
-Rule guid: (GUID fromString: '{85D31ECF-FE43-455F-ABBB-789990A43323}')!
-Rule comment: ''!
-!Rule categoriesForClass!Kernel-Objects! !
-!Rule methodsFor!
-
-head: h body: b
-	head := h.
-	body := b.! !
-!Rule categoriesFor: #head:body:!public! !
-
-!Rule class methodsFor!
-
-head: h body: b
-	self new head: h body: b! !
-!Rule class categoriesFor: #head:body:!public! !
 
 Clause guid: (GUID fromString: '{0EE0BC45-445C-454D-9FF6-5209DFDF9718}')!
 Clause comment: ''!
@@ -157,15 +160,66 @@ first: t rest: h
 interpreter: p go: term do: action
 	first interpreter: p go: term do: [ 
 		p go: rest do: action.
-	].! !
+	].!
+
+isBound
+	^first isBound & rest isBound!
+
+printOn: aStream
+	aStream
+		print: first;
+		space;
+		nextPut: $&;
+		space;
+		print: rest.! !
 !Clause categoriesFor: #first:rest:!public! !
 !Clause categoriesFor: #interpreter:go:do:!public! !
+!Clause categoriesFor: #isBound!public! !
+!Clause categoriesFor: #printOn:!public! !
 
 !Clause class methodsFor!
 
 first: h rest: t
 	^self new first: h rest: t! !
 !Clause class categoriesFor: #first:rest:!public! !
+
+Rule guid: (GUID fromString: '{85D31ECF-FE43-455F-ABBB-789990A43323}')!
+Rule comment: ''!
+!Rule categoriesForClass!Kernel-Objects! !
+!Rule methodsFor!
+
+body
+	^body.!
+
+head
+	^head.!
+
+head: h body: b
+	head := h.
+	body := b.!
+
+isBound
+	^head isBound & body isBound!
+
+printOn: aStream
+	aStream
+		print: head;
+		space;
+		nextPut: $:;
+		nextPut: $-;
+		space;
+		print: body.! !
+!Rule categoriesFor: #body!public! !
+!Rule categoriesFor: #head!public! !
+!Rule categoriesFor: #head:body:!public! !
+!Rule categoriesFor: #isBound!public! !
+!Rule categoriesFor: #printOn:!public! !
+
+!Rule class methodsFor!
+
+head: h body: b
+	^self new head: h body: b! !
+!Rule class categoriesFor: #head:body:!public! !
 
 Term guid: (GUID fromString: '{2D30A7A8-31B7-4712-8FD8-B58AE27D4AF8}')!
 Term comment: ''!
@@ -301,17 +355,16 @@ first: f second: s
 	second := s!
 
 isBound
-	^(first isBound) & (second isBound).!
+	^first isBound & second isBound.!
 
 printOn: aStream
 	aStream
-		nextPut: $P;
-		nextPut: $(;
+		nextPut: $<;
 		print: first;
 		nextPut: $,;
 		space;
 		print: second;
-		nextPut: $).!
+		nextPut: $>.!
 
 restoreVars
 	self car restoreVars.
@@ -391,11 +444,8 @@ ifNotBound: action
 	]!
 
 isBound
-	term ifNotNil: [:v |
-		^term isBound
-	] ifNil: [
-		^false
-	].!
+	^term isNil not.
+!
 
 printOn: aStream
 	aStream
